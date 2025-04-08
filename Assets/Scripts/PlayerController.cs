@@ -1,7 +1,8 @@
+using Unity.Netcode;
 using UnityEngine;
 
 [RequireComponent(typeof(CharacterController))]
-public class PlayerController : MonoBehaviour
+public class PlayerController : NetworkBehaviour
 {
     [SerializeField] private float walkSpeed = 5f;
     [SerializeField] private float runSpeed = 10f;
@@ -12,14 +13,15 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
-        if (controller == null)
-        {
-            controller = GetComponent<CharacterController>();
-        }
+        if (!IsOwner) return;
+
+        controller = GetComponent<CharacterController>();
     }
 
     void Update()
     {
+        if (!IsOwner) return;
+
         HandleMovement();
         ApplyGravity();
     }

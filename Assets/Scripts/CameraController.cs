@@ -1,9 +1,10 @@
+using Unity.Netcode;
 using UnityEngine;
 
-public class CameraController : MonoBehaviour
+public class CameraController : NetworkBehaviour
 {
     [Header("References")]
-    [SerializeField] private Transform playerBody;  // Reference to the player's transform for horizontal rotation
+    [SerializeField] private Transform playerBody;
 
     [Header("Mouse Settings")]
     [SerializeField] private float mouseSensitivity = 100f;
@@ -12,24 +13,26 @@ public class CameraController : MonoBehaviour
 
     [Header("Smoothing Settings")]
     [SerializeField] private bool useSmoothing = false;
-    [SerializeField] [Range(0.01f, 1f)] private float smoothingFactor = 0.1f; // Lower values smooth more
+    [SerializeField] [Range(0.01f, 1f)] private float smoothingFactor = 0.1f;
 
-    private float xRotation = 0f;     // Vertical rotation stored in degrees
-    private Vector2 currentRotation;  // Current rotation for smoothing purposes
-    private Vector2 smoothRotation;   // Smoothed rotation values
+    private float xRotation = 0f;
+    private Vector2 currentRotation;
+    private Vector2 smoothRotation;
 
     void Start()
     {
+        if (!IsOwner) return;
+
         LockCursor();
-        // Initialize currentRotation with starting rotation values
         currentRotation = new Vector2(playerBody.eulerAngles.y, transform.localEulerAngles.x);
     }
 
     void Update()
     {
+        if (!IsOwner) return;
+
         HandleMouseLook();
 
-        // Toggle cursor lock state if Escape key is pressed
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             ToggleCursorLock();
@@ -41,33 +44,26 @@ public class CameraController : MonoBehaviour
     /// </summary>
     private void HandleMouseLook()
     {
-        // Read mouse input; delta time is used for consistency
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
         float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
 
-        // Optionally invert the vertical input
         mouseY = invertY ? -mouseY : mouseY;
 
-        // Update the current rotation values
         currentRotation.x += mouseX;
         currentRotation.y -= mouseY;
 
-        // Clamp vertical rotation to prevent over-rotation (looking too far up or down)
         currentRotation.y = Mathf.Clamp(currentRotation.y, -clampAngle, clampAngle);
 
         if (useSmoothing)
         {
-            // Smooth the rotation values for a more fluid camera movement
             smoothRotation.x = Mathf.Lerp(smoothRotation.x, currentRotation.x, smoothingFactor);
             smoothRotation.y = Mathf.Lerp(smoothRotation.y, currentRotation.y, smoothingFactor);
 
-            // Apply rotations: the camera rotates vertically while the player rotates horizontally
             transform.localRotation = Quaternion.Euler(smoothRotation.y, 0f, 0f);
             playerBody.rotation = Quaternion.Euler(0f, smoothRotation.x, 0f);
         }
         else
         {
-            // Apply the rotation directly without smoothing
             transform.localRotation = Quaternion.Euler(currentRotation.y, 0f, 0f);
             playerBody.rotation = Quaternion.Euler(0f, currentRotation.x, 0f);
         }
